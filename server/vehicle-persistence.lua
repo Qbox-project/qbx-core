@@ -1,3 +1,5 @@
+local persistence = GetConvar('qbx:enableVehiclePersistence', 'false')
+
 ---A persisted vehicle will respawn when deleted. Only works for player owned vehicles.
 ---Vehicles spawned using lib are automatically persisted
 ---@param vehicle number
@@ -15,12 +17,13 @@ end
 
 exports('DisablePersistence', DisablePersistence)
 
-if GetConvar('qbx:enableVehiclePersistence', 'false') == 'false' then return end
+if persistence == 'false' then return end
 
 assert(lib.checkDependency('qbx_vehicles', '1.4.1', true))
 
 local function getVehicleId(vehicle)
-    return Entity(vehicle).state.vehicleid or exports.qbx_vehicles:GetVehicleIdByPlate(GetVehicleNumberPlateText(vehicle))
+    return Entity(vehicle).state.vehicleid or
+        exports.qbx_vehicles:GetVehicleIdByPlate(GetVehicleNumberPlateText(vehicle))
 end
 
 RegisterNetEvent('qbx_core:server:vehiclePropsChanged', function(netId, diff)
@@ -29,6 +32,7 @@ RegisterNetEvent('qbx_core:server:vehiclePropsChanged', function(netId, diff)
     local vehicleId = getVehicleId(vehicle)
     if not vehicleId then return end
 
+    local coords = nil
     local props = exports.qbx_vehicles:GetPlayerVehicle(vehicleId)?.props
     if not props then return end
 
@@ -68,8 +72,15 @@ RegisterNetEvent('qbx_core:server:vehiclePropsChanged', function(netId, diff)
         props.tyres = diff.tyres ~= 'deleted' and diff.tyres or nil
     end
 
+    if persistence == 2 then
+        local entityCoords = GetEntityCoords(vehicle)
+        local entityHeading = GetEntityHeading(vehicle)
+        coords = vec4(entityCoords.x, entityCoords.y, entityCoords.z, entityHeading)
+    end
+
     exports.qbx_vehicles:SaveVehicle(vehicle, {
         props = props,
+        coords = coords
     })
 end)
 
@@ -121,4 +132,75 @@ AddEventHandler('entityRemoved', function(entity)
         local passenger = passengers[i]
         SetPedIntoVehicle(passenger.ped, veh, passenger.seat)
     end
+end)
+
+if persistence == 'full' then return end
+
+local cachedVehicles = {}
+local config = require 'config.server'
+
+---@param plate string
+---@return boolean
+local function isVehicleSpawned(plate)
+    for _, vehicle in pairs(GetGamePool('CVehicle')) do
+        if qbx.getVehiclePlate(vehicle) == plate then
+            return true
+        end
+    end
+    return false
+end
+
+---@param coords vector4
+---@param id number
+---@param model string
+---@param props table
+local function spawnVehicle(coords, id, model, props)
+    if not coords or not id or not model or not props then return end
+
+    local netId, veh = qbx.spawnVehicle({
+        spawnSource = vec4(coords.x, coords.y, coords.z, coords.w),
+        model = model,
+        props = props
+    })
+
+    cachedVehicles[id] = nil
+    Entity(veh).state:set('vehicleid', id, false)
+    TriggerClientEvent('qbx_core:client:removeVehZone', -1, id)
+    config.setVehicleLock(veh, config.persistence.lockState)
+end
+
+lib.callback.register('qbx_core:server:getVehiclesToSpawn', function()
+    return cachedVehicles
+end)
+
+AddEventHandler('onResourceStart', function(resourceName)
+    if resourceName ~= 'qbx_vehicles' then return end
+
+    local vehicles = exports.qbx_vehicles:GetPlayerVehicles({ states = 0 })
+    if not vehicles then return end
+
+    for _, vehicle in ipairs(vehicles) do
+        if vehicle.coords and vehicle.props and vehicle.props.plate and
+            not isVehicleSpawned(vehicle.props.plate) then
+            cachedVehicles[vehicle.id] = vehicle.coords
+        end
+    end
+end)
+
+RegisterNetEvent('qbx_core:server:spawnVehicle', function(id, coords)
+    if not id or not coords then return end
+
+    local cachedCoords = cachedVehicles[id]
+    if not cachedCoords or
+        cachedCoords.x ~= coords.x or
+        cachedCoords.y ~= coords.y or
+        cachedCoords.z ~= coords.z or
+        cachedCoords.w ~= coords.w then
+        return
+    end
+
+    local vehicle = exports.qbx_vehicles:GetPlayerVehicle(id)
+    if not vehicle or not vehicle.modelName or not vehicle.props then return end
+
+    spawnVehicle(coords, id, vehicle.modelName, vehicle.props)
 end)
