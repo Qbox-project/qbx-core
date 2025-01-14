@@ -578,6 +578,7 @@ else
     ---@field audioSource? number | vector3 entity handle or vector3 coords
     ---@field range? number only used if `audioSource` is a vector3 coordinate
 
+    ---@deprecated use mana_audio instead
     ---Plays a sound with the provided audio name and audio ref.
     ---If `returnSoundId` is false or not specified the soundId is released,
     ---otherwise the function returns the soundId without releasing it.
