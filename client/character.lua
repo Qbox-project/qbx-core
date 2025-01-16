@@ -284,6 +284,7 @@ local function spawnDefault() -- We use a callback to make the server wait on th
     while not IsScreenFadedIn() do
         Wait(0)
     end
+
     TriggerEvent('qb-clothes:client:CreateFirstCharacter')
 end
 
@@ -321,7 +322,6 @@ local function createCharacter(cid)
     :: noMatch ::
 
     local dialog = characterDialog()
-
     if not dialog then return false end
 
     for input = 1, 3 do -- Run through first 3 inputs, aka first name, last name and nationality
@@ -353,6 +353,7 @@ local function createCharacter(cid)
     end
 
     destroyPreviewCam()
+
     return true
 end
 
@@ -445,6 +446,7 @@ local function chooseCharacter()
                             else
                                 spawnLastLocation()
                             end
+
                             destroyPreviewCam()
                         end
                     },
@@ -459,6 +461,7 @@ local function chooseCharacter()
                                 centered = true,
                                 cancel = true
                             })
+
                             if alert == 'confirm' then
                                 TriggerServerEvent('qbx_core:server:deleteCharacter', character.citizenid)
                                 destroyPreviewCam()
@@ -504,6 +507,7 @@ end)
 
 RegisterNetEvent('qbx_core:client:playerLoggedOut', function()
     if GetInvokingResource() then return end -- Make sure this can only be triggered from the server
+
     chooseCharacter()
 end)
 

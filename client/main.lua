@@ -58,6 +58,7 @@ end)
 
 local mapText = require 'config.client'.pauseMapText
 if mapText == '' or type(mapText) ~= 'string' then mapText = 'FiveM' end
+
 AddTextEntry('FE_THDR_GTAO', mapText)
 
 CreateThread(function()
@@ -81,5 +82,6 @@ lib.callback.register('qbx_core:client:getVehicleClasses', function()
         local class = GetVehicleClassFromName(model)
         classes[joaat(model)] = class
     end
+
     return classes
 end)

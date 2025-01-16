@@ -20,8 +20,8 @@ function Notify(text, notifyType, duration, subTitle, notifyPosition, notifyStyl
     else
         description = text
     end
-    local position = notifyPosition or positionConfig
 
+    local position = notifyPosition or positionConfig
     lib.notify({
         id = title,
         title = title,

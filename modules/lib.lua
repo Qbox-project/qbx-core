@@ -86,7 +86,7 @@ qbx.armsWithoutGloves = lib.table.freeze({
         [157] = true,
         [161] = true,
         [165] = true
-    }),
+    })
 })
 
 ---Returns the given string with its trailing whitespaces removed.
@@ -111,6 +111,7 @@ end
 ---@return number rounded integer if `decimalPlaces` isn't passed, number otherwise
 function qbx.math.round(num, decimalPlaces)
     if not decimalPlaces then return math.floor(num + 0.5) end
+
     local power = 10 ^ decimalPlaces
     return math.floor((num * power) + 0.5) / power
 end
@@ -123,6 +124,7 @@ function qbx.table.size(tbl)
     for _ in pairs(tbl) do
         size += 1
     end
+
     return size
 end
 
@@ -132,10 +134,8 @@ end
 ---@return table<any, table[]>
 function qbx.table.mapBySubfield(tble, subfield)
     local map = {}
-
     for _, subTable in pairs(tble) do
         local subfieldValue = subTable[subfield]
-
         if subfieldValue then
             if not map[subfieldValue] then
                 map[subfieldValue] = {}
@@ -169,6 +169,7 @@ end
 function qbx.getVehiclePlate(vehicle)
     local plate = GetVehicleNumberPlateText(vehicle)
     if not plate then return end
+
     return qbx.string.trim(plate)
 end
 
@@ -309,6 +310,7 @@ if isServer then
             local owner = NetworkGetEntityOwner(veh)
             state:set('initVehicle', true, true)
             netId = NetworkGetNetworkIdFromEntity(veh)
+
             if props and type(props) == 'table' and props.plate then
                 TriggerClientEvent('qbx_core:client:setVehicleProperties', owner, netId, props)
                 local success = pcall(function()
@@ -317,15 +319,18 @@ if isServer then
                         if qbx.string.trim(GetVehicleNumberPlateText(veh)) == qbx.string.trim(props.plate) then
                             local currentOwner = NetworkGetEntityOwner(veh)
                             assert(currentOwner == owner, ('Owner changed during vehicle init. expected=%s, actual=%s'):format(owner, currentOwner))
+
                             --- check that the plate matches twice, 100ms apart as a bug has been observed in which server side matches but plate is not observed by clients to match
                             if plateMatched then
                                 return true
                             end
+
                             plateMatched = true
                             Wait(100)
                         end
                     end, 'Failed to set vehicle properties within 1 second', 1000)
                 end)
+
                 if success then
                     break
                 else
@@ -344,6 +349,7 @@ if isServer then
         --- prevent server from deleting a vehicle without an owner
         SetEntityOrphanMode(veh, 2)
         exports.qbx_core:EnablePersistence(veh)
+
         return netId, veh
     end
 else
@@ -376,9 +382,11 @@ else
         SetTextScale(scale, scale)
         SetTextFont(font)
         SetTextColour(math.floor(color.r), math.floor(color.g), math.floor(color.b), math.floor(color.a))
+
         if enableDropShadow then
             SetTextDropShadow()
         end
+
         if enableOutline then
             SetTextOutline()
         end
@@ -397,12 +405,11 @@ else
     ---Draws text onto the screen in 3D space for a single frame.
     ---@param params LibDrawText3DParams
     function qbx.drawText3d(params) -- luacheck: ignore
-        local isScaleparamANumber = type(params.scale) == "number"
         local text = params.text
         local coords = params.coords
-        local scale = (isScaleparamANumber and vec2(params.scale, params.scale))
-                  or params.scale
-                  or vec2(0.35, 0.35)
+        local scale = type(params.scale) == 'number' and vec2(params.scale --[[@as number]], params.scale --[[@as number]])
+            or params.scale
+            or vec2(0.35, 0.35)
         local font = params.font or 4
         local color = params.color or vec4(255, 255, 255, 255)
         local enableDropShadow = params.enableDropShadow or false
@@ -411,12 +418,15 @@ else
         SetTextScale(scale.x, scale.y)
         SetTextFont(font)
         SetTextColour(math.floor(color.r), math.floor(color.g), math.floor(color.b), math.floor(color.a))
+
         if enableDropShadow then
             SetTextDropShadow()
         end
+
         if enableOutline then
             SetTextOutline()
         end
+
         SetTextCentre(true)
         BeginTextCommandDisplayText('STRING')
         AddTextComponentSubstringPlayerName(text)
@@ -427,6 +437,7 @@ else
             local factor = #text / 370
             DrawRect(0.0, 0.0125, 0.017 + factor, 0.03, 0, 0, 0, 75)
         end
+
         ClearDrawOrigin()
     end
 
@@ -437,7 +448,6 @@ else
     ---@return integer entity, integer netId
     function qbx.getEntityAndNetIdFromBagName(bagName)
         local netId = tonumber(bagName:gsub('entity:', ''), 10)
-
         local entity = lib.waitFor(function()
             if NetworkDoesEntityExistWithNetworkId(netId) then
                 return NetworkGetEntityFromNetworkId(netId)
@@ -472,6 +482,7 @@ else
     function qbx.deleteVehicle(vehicle)
         SetEntityAsMissionEntity(vehicle, true, true)
         DeleteVehicle(vehicle)
+
         return not DoesEntityExist(vehicle)
     end
 
@@ -527,6 +538,7 @@ else
     ---@param enable boolean
     function qbx.setVehicleExtra(vehicle, extra, enable)
         if not DoesExtraExist(vehicle, extra) then return end
+
         SetVehicleExtra(vehicle, extra, not enable)
     end
 
@@ -554,8 +566,9 @@ else
     function qbx.isWearingGloves()
         local armIndex = GetPedDrawableVariation(cache.ped, 3)
         local model = GetEntityModel(cache.ped)
-        local tble = qbx.armsWithoutGloves[model == `mp_m_freemode_01` and 'male' or 'female']
-        return not tble[armIndex]
+        local tbl = qbx.armsWithoutGloves[model == `mp_m_freemode_01` and 'male' or 'female']
+
+        return not tbl[armIndex]
     end
 
     ---Attempts to load an audio bank and returns whether it was successful.
@@ -589,10 +602,9 @@ else
         local returnSoundId = params.returnSoundId or false
         local source = params.audioSource
         local range = params.range or 5.0
-
         local soundId = GetSoundId()
-
         local sourceType = type(source)
+
         if sourceType == 'vector3' then
             local coords = source
             PlaySoundFromCoord(soundId, audioName, coords.x, coords.y, coords.z, audioRef, false, range, false)

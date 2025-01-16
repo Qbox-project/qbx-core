@@ -1,6 +1,7 @@
 local qbShared = require 'shared.main'
 
 qbShared.Items = {}
+
 local oxItems = require '@ox_inventory.data.items'
 for item, data in pairs(oxItems) do
     qbShared.Items[item] = {
@@ -16,6 +17,7 @@ for item, data in pairs(oxItems) do
         description = data.description or nil
     }
 end
+
 local oxWeapons = require '@ox_inventory.data.weapons'
 for weapon, data in pairs(oxWeapons.Weapons) do
     weapon = string.lower(weapon)
@@ -33,6 +35,7 @@ for weapon, data in pairs(oxWeapons.Weapons) do
         description = nil
     }
 end
+
 for component, data in pairs(oxWeapons.Components) do
     component = string.lower(component)
     qbShared.Items[component] = {
@@ -48,6 +51,7 @@ for component, data in pairs(oxWeapons.Components) do
         description = data.description
     }
 end
+
 for ammo, data in pairs(oxWeapons.Ammo) do
     ammo = string.lower(ammo)
     qbShared.Items[ammo] = {
@@ -110,12 +114,14 @@ end
 ---@deprecated use qbx.string.trim from modules/lib.lua
 qbShared.Trim = function(str)
     if not str then return nil end
+
     return qbx.string.trim(str)
 end
 
 ---@deprecated use qbx.string.capitalize from modules/lib.lua
 qbShared.FirstToUpper = function(str)
     if not str then return nil end
+
     return qbx.string.capitalize(str)
 end
 

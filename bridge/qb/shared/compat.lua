@@ -28,6 +28,7 @@ return {
                     return true
                 end
             end
+
             return false
         end
 
@@ -70,7 +71,6 @@ return {
 ]]
 
             local fileSize = #file
-
             for _, item in pairs(dump) do
                 if not ItemList[item.name] then
                     fileSize += 1
@@ -88,7 +88,7 @@ return {
                 end
             end
 
-            file[fileSize+1] = '}'
+            file[fileSize + 1] = '}'
 
             SaveResourceFile('ox_inventory', 'data/items.lua', table.concat(file), -1)
             CreateThread(function()

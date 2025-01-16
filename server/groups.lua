@@ -50,6 +50,7 @@ function RemoveJob(jobName)
     jobs[jobName] = nil
     TriggerEvent('qbx_core:server:onJobUpdate', jobName, nil)
     TriggerClientEvent('qbx_core:client:onJobUpdate', -1, jobName, nil)
+
     return true, 'success'
 end
 
@@ -84,6 +85,7 @@ function RemoveGang(gangName)
 
     TriggerEvent('qbx_core:server:onGangUpdate', gangName, nil)
     TriggerClientEvent('qbx_core:client:onGangUpdate', -1, gangName, nil)
+
     return true, 'success'
 end
 
@@ -136,6 +138,7 @@ local function upsertJobData(name, data)
             grades = {},
         }
     end
+
     TriggerEvent('qbx_core:server:onJobUpdate', name, jobs[name])
     TriggerClientEvent('qbx_core:client:onJobUpdate', -1, name, jobs[name])
 end
@@ -153,6 +156,7 @@ local function upsertGangData(name, data)
             grades = {},
         }
     end
+
     TriggerEvent('qbx_core:server:onGangUpdate', name, gangs[name])
     TriggerClientEvent('qbx_core:client:onGangUpdate', -1, name, gangs[name])
 end
@@ -167,6 +171,7 @@ local function upsertJobGrade(name, grade, data)
         lib.print.error('Job must exist to edit grades. Not found:', name)
         return
     end
+
     jobs[name].grades[grade] = data
     TriggerEvent('qbx_core:server:onJobUpdate', name, jobs[name])
     TriggerClientEvent('qbx_core:client:onJobUpdate', -1, name, jobs[name])
@@ -182,6 +187,7 @@ local function upsertGangGrade(name, grade, data)
         lib.print.error('Gang must exist to edit grades. Not found:', name)
         return
     end
+
     gangs[name].grades[grade] = data
     TriggerEvent('qbx_core:server:onGangUpdate', name, gangs[name])
     TriggerClientEvent('qbx_core:client:onGangUpdate', -1, name, gangs[name])
@@ -196,6 +202,7 @@ local function removeJobGrade(name, grade)
         lib.print.error('Job must exist to edit grades. Not found:', name)
         return
     end
+
     jobs[name].grades[grade] = nil
     TriggerEvent('qbx_core:server:onJobUpdate', name, jobs[name])
     TriggerClientEvent('qbx_core:client:onJobUpdate', -1, name, jobs[name])
@@ -210,6 +217,7 @@ local function removeGangGrade(name, grade)
         lib.print.error('Gang must exist to edit grades. Not found:', name)
         return
     end
+
     gangs[name].grades[grade] = nil
     TriggerEvent('qbx_core:server:onGangUpdate', name, gangs[name])
     TriggerClientEvent('qbx_core:client:onGangUpdate', -1, name, gangs[name])

@@ -63,11 +63,13 @@ RegisterNetEvent('QBCore:CallCommand', function(command, args)
     local src = source --[[@as Source]]
     local player = GetPlayer(src)
     if not player then return end
+
     if IsPlayerAceAllowed(src --[[@as string]], ('command.%s'):format(command)) then
         local commandString = command
         for _, value in pairs(args) do
             commandString = ('%s %s'):format(commandString, value)
         end
+
         TriggerClientEvent('QBCore:Command:CallCommand', src, commandString)
     end
 end)
@@ -90,6 +92,7 @@ end
 ---@deprecated call a function instead
 function qbCoreCompat.Functions.TriggerCallback(name, source, cb, ...)
     if not qbCoreCompat.ServerCallbacks[name] then return end
+
     qbCoreCompat.ServerCallbacks[name](source, cb, ...)
 end
 

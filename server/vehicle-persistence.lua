@@ -83,14 +83,17 @@ local function getPedsInVehicleSeats(vehicle)
                 ped = ped,
                 seat = i,
             }
+
             occupantsI += 1
         end
     end
+
     return occupants
 end
 
 AddEventHandler('entityRemoved', function(entity)
     if not Entity(entity).state.persisted then return end
+
     local sessionId = Entity(entity).state.sessionId
     local coords = GetEntityCoords(entity)
     local heading = GetEntityHeading(entity)

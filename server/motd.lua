@@ -71,10 +71,8 @@ To turn this message off, set the ^3qbx:acknowledge^4 convar to true in your ser
     local serviceMessages = json.decode(Citizen.Await(requestPromise))
     if type(serviceMessages) == 'table' then
         local hasServiceMessage = false
-
         for i = 1, #serviceMessages do
             local message = serviceMessages[i]
-
             if type(message) == 'table' and message.content and isResourceVersion(message.version) then
                 if not hasServiceMessage then
                     hasServiceMessage = true

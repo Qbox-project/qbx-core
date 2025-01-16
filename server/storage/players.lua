@@ -1,5 +1,32 @@
 local defaultSpawn = require 'config.shared'.defaultSpawn
 local characterDataTables = require 'config.server'.characterDataTables
+local playerDataUpdateQueue = {}
+local collectedPlayerData = {}
+local isUpdating = false
+
+local otherNamedPlayerFields = {
+    ['items'] = 'inventory',
+    ['lastLoggedOut'] = 'last_logged_out'
+}
+
+local jsonPlayerFields = {
+    ['id'] = false,
+    ['userId'] = false,
+    ['citizenid'] = false,
+    ['cid'] = false,
+    ['license'] = false,
+    ['name'] = false,
+    ['money'] = true,
+    ['charinfo'] = true,
+    ['job'] = true,
+    ['gang'] = true,
+    ['position'] = true,
+    ['metadata'] = true,
+    ['inventory'] = true,
+    ['phone_number'] = false,
+    ['last_updated'] = false,
+    ['last_logged_out'] = false
+}
 
 local function createUsersTable()
     MySQL.query([[
@@ -78,7 +105,7 @@ end
 ---@return BanEntity?
 local function fetchBan(request)
     local column, value = getBanId(request)
-    local result = MySQL.single.await('SELECT expire, reason FROM bans WHERE ' ..column.. ' = ?', { value })
+    local result = MySQL.single.await('SELECT expire, reason FROM bans WHERE ' .. column .. ' = ?', { value })
     return result and {
         expire = result.expire,
         reason = result.reason,
@@ -88,7 +115,7 @@ end
 ---@param request GetBanRequest
 local function deleteBan(request)
     local column, value = getBanId(request)
-    MySQL.query.await('DELETE FROM bans WHERE ' ..column.. ' = ?', { value })
+    MySQL.query.await('DELETE FROM bans WHERE ' .. column .. ' = ?', { value })
 end
 
 ---@param request UpsertPlayerRequest
@@ -166,22 +193,28 @@ local function fetchPlayerEntity(citizenId)
 end
 
 ---@param filters table<string, any>
+---@return string, any[]
 local function handleSearchFilters(filters)
-    if not (filters) then return '', {} end
+    if not filters then return '', {} end
+
     local holders = {}
     local clauses = {}
+
     if filters.license then
         clauses[#clauses + 1] = 'license = ?'
         holders[#holders + 1] = filters.license
     end
+
     if filters.job then
         clauses[#clauses + 1] = 'JSON_EXTRACT(job, "$.name") = ?'
         holders[#holders + 1] = filters.job
     end
+
     if filters.gang then
         clauses[#clauses + 1] = 'JSON_EXTRACT(gang, "$.name") = ?'
         holders[#holders + 1] = filters.gang
     end
+
     if filters.metadata then
         local strict = filters.metadata.strict
         for key, value in pairs(filters.metadata) do
@@ -192,6 +225,7 @@ local function handleSearchFilters(filters)
                     else
                         clauses[#clauses + 1] = 'JSON_EXTRACT(metadata, "$.' .. key .. '") >= ?'
                     end
+
                     holders[#holders + 1] = value
                 elseif type(value) == "boolean" then
                     clauses[#clauses + 1] = 'JSON_EXTRACT(metadata, "$.' .. key .. '") = ?'
@@ -203,6 +237,7 @@ local function handleSearchFilters(filters)
             end
         end
     end
+
     return (' WHERE %s'):format(table.concat(clauses, ' AND ')), holders
 end
 
@@ -317,6 +352,7 @@ local function fetchPlayerGroups(citizenid)
             gangs[group.group] = group.grade
         end
     end
+
     return jobs, gangs
 end
 
@@ -382,8 +418,97 @@ local function cleanPlayerGroups()
     lib.print.info('Removed invalid groups from player_groups table')
 end
 
+---@param citizenid string
+---@param key string | string[]
+---@param value any
+local function addPlayerDataUpdate(citizenid, key, value)
+    local hasSubKeys = type(key) == 'table'
+
+    if hasSubKeys then
+        key[1] = otherNamedPlayerFields[key[1]] or key[1]
+    else
+        key = otherNamedPlayerFields[key] or key
+    end
+
+    if jsonPlayerFields[hasSubKeys and key[1] or key] == nil then
+        lib.print.error(('Tried to update player data field %s when it doesn\'t exist. Value: %s'):format(hasSubKeys and key[1] or key, value))
+        return
+    end
+
+    if hasSubKeys and not jsonPlayerFields[key[1]] then
+        lib.print.error(('Tried to update player data field %s as a json object when it isn\'t one'):format(key[1]))
+        return
+    end
+
+    -- In sendPlayerDataUpdates we don't go more than 3 tables deep
+    if hasSubKeys and #key > 4 then
+        lib.print.error(('Cannot save field %s because data is too big.\nkeys: %s\nvalue: %s'):format(key[1], json.encode(key), value))
+        return
+    end
+
+    local currentTable = isUpdating and playerDataUpdateQueue or collectedPlayerData
+    if not currentTable[citizenid] then
+        currentTable[citizenid] = {}
+    end
+
+    currentTable[citizenid][hasSubKeys and key[1] or key] = hasSubKeys and {} or value
+
+    if hasSubKeys then
+        local current = currentTable[citizenid][key[1]]
+        if #key > 2 then
+            -- We don't check the last one because otherwise we lose the table reference
+            for i = 2, #key - 1 do
+                if not current[key[i]] then
+                    current[key[i]] = {}
+                end
+
+                current = current[key[i]]
+            end
+        end
+
+        current[key[#key]] = value
+    end
+end
+
+---@param key string
+---@param nestedTable table<string, any>
+---@param path string?
+---@param citizenid string
+local function updateNestedPlayerData(key, nestedTable, citizenid, path)
+    for k, v in pairs(nestedTable) do
+        local currentPath = path and ('%s.%s'):format(path, k) or k
+        if type(v) == 'table' then
+            updateNestedPlayerData(key, v, citizenid, currentPath)
+        else
+            local query = ('UPDATE players SET %s = JSON_SET(%s, "$.%s", ?) WHERE citizenid = ?'):format(key, key, currentPath)
+            MySQL.prepare.await(query, { v, citizenid })
+        end
+    end
+end
+
+local function sendPlayerDataUpdates()
+    -- We implement this to ensure when updating no values are added to our updating sequence to prevent data loss by accidentally skipping over it
+    isUpdating = true
+
+    for citizenid, playerData in pairs(collectedPlayerData) do
+        for key, data in pairs(playerData) do
+            if type(data) == 'table' then
+                updateNestedPlayerData(key, data, citizenid)
+            else
+                local query = ('UPDATE players SET %s = ? WHERE citizenid = ?'):format(key)
+                MySQL.prepare.await(query, { data, citizenid })
+            end
+        end
+    end
+
+    collectedPlayerData = playerDataUpdateQueue
+    playerDataUpdateQueue = {}
+    isUpdating = false
+end
+
 RegisterCommand('cleanplayergroups', function(source)
     if source ~= 0 then return warn('This command can only be executed using the server console.') end
+
     cleanPlayerGroups()
 end, true)
 
@@ -394,6 +519,7 @@ CreateThread(function()
             warn(('Table \'%s\' does not exist in database, please remove it from qbx_core/config/server.lua or create the table'):format(tableName))
         end
     end
+
     if GetConvar('qbx:cleanPlayerGroups', 'false') == 'true' then
         cleanPlayerGroups()
     end
@@ -419,4 +545,6 @@ return {
     removePlayerFromJob = removePlayerFromJob,
     removePlayerFromGang = removePlayerFromGang,
     searchPlayerEntities = searchPlayerEntities,
+    sendPlayerDataUpdates = sendPlayerDataUpdates,
+    addPlayerDataUpdate = addPlayerDataUpdate
 }
