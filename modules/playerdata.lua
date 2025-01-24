@@ -10,6 +10,6 @@ end)
 
 RegisterNetEvent('QBCore:Player:SetPlayerData', function(value)
     local invokingResource = GetInvokingResource()
-    if invokingResource and invokingResource ~= GetCurrentResourceName() then return end
+    if invokingResource and invokingResource ~= 'qbx_core' then return end
     QBX.PlayerData = value
 end)
