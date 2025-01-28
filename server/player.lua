@@ -1114,9 +1114,23 @@ function SetMetadata(identifier, metadata, value)
 
     if not player then return end
 
-    local oldValue = player.PlayerData.metadata[metadata]
+    local oldValue
 
-    player.PlayerData.metadata[metadata] = value
+    if metadata:match('%.') then
+        local metaTable, metaKey = metadata:match('([^%.]+)%.(.+)')
+
+        if metaKey:match('%.') then
+            lib.print.error('cannot get nested metadata more than 1 level deep')
+        end
+
+        oldValue = player.PlayerData.metadata[metaTable][metaKey]
+
+        player.PlayerData.metadata[metaTable][metaKey] = value
+    else
+        oldValue = player.PlayerData.metadata[metadata]
+
+        player.PlayerData.metadata[metadata] = value
+    end
 
     UpdatePlayerData(identifier)
 
@@ -1160,7 +1174,17 @@ function GetMetadata(identifier, metadata)
 
     if not player then return end
 
-    return player.PlayerData.metadata[metadata]
+    if metadata:match('%.') then
+        local metaTable, metaKey = metadata:match('([^%.]+)%.(.+)')
+
+        if metaKey:match('%.') then
+            lib.print.error('cannot get nested metadata more than 1 level deep')
+        end
+
+        return player.PlayerData.metadata[metaTable][metaKey]
+    else
+        return player.PlayerData.metadata[metadata]
+    end
 end
 
 exports('GetMetadata', GetMetadata)
