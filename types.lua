@@ -102,6 +102,9 @@
 ---@field fetchPlayerGroups fun(citizenid: string): table<string, integer>, table<string, integer> jobs, gangs
 ---@field removePlayerFromJob fun(citizenid: string, group: string)
 ---@field removePlayerFromGang fun(citizenid: string, group: string)
+---@field sendPlayerDataUpdates fun()
+---@field forcePlayerDataUpdate fun(citizenid: string)
+---@field addPlayerDataUpdate fun(citizenid: string, key: string | string[], value: any)
 
 ---@class InsertBanRequest
 ---@field name string

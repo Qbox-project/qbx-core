@@ -25,7 +25,6 @@ local Colors = { -- https://www.spycolor.com/
 local function applyRequestDelay()
     local currentTime = GetGameTimer()
     local timeDiff = currentTime - lastRequestTime
-
     if timeDiff < requestDelay then
         local remainingDelay = requestDelay - timeDiff
 
@@ -69,11 +68,9 @@ local function logPayload(payload)
 
         local remainingRequests = tonumber(headers['X-RateLimit-Remaining'])
         local resetTime = tonumber(headers['X-RateLimit-Reset'])
-
         if remainingRequests and resetTime and remainingRequests == 0 then
             local currentTime = os.time()
             local resetDelay = resetTime - currentTime
-
             if resetDelay > 0 then
                 requestDelay = resetDelay * 1000 / 10
             end
@@ -147,6 +144,7 @@ local function createLog(log)
         ---@diagnostic disable-next-line: param-type-mismatch
         discordLog(log)
     end
+
     lib.logger(log.source, log.event, log.message, log.oxLibTags) -- support for ox_lib: datadog, grafana loki logging, fivemanage
 end
 

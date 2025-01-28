@@ -171,7 +171,6 @@ lib.addCommand('dv', {
     local ped = GetPlayerPed(source)
     local pedCars = {GetVehiclePedIsIn(ped, false)}
     local radius = args[locale('command.dv.params.radius.name')]
-
     if pedCars[1] == 0 or radius then -- Only execute when player is not in a vehicle or radius is explicitly defined
         pedCars = lib.callback.await('qbx_core:client:getVehiclesInRadius', source, radius)
     else
@@ -382,6 +381,7 @@ lib.addCommand('me', {
     args[1] = args[locale('command.me.params.message.name')]
     args[locale('command.me.params.message.name')] = nil
     if #args < 1 then Notify(source, locale('error.missing_args2'), 'error') return end
+
     local msg = table.concat(args, ' '):gsub('[~<].-[>~]', '')
     local playerState = Player(source).state
     playerState:set('me', msg, true)

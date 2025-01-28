@@ -9,45 +9,46 @@ local storage = require 'server.storage.main'
 -- ex: local player = GetPlayer(source)
 -- ex: local example = player.functionname(parameter)
 
----@alias Identifier 'steam'|'license'|'license2'|'xbl'|'ip'|'discord'|'live'
-
----@param identifier Identifier
+---@param identifier string
 ---@return integer source of the player with the matching identifier or 0 if no player found
 function GetSource(identifier)
     for src in pairs(QBX.Players) do
         local idens = GetPlayerIdentifiers(src)
-        for _, id in pairs(idens) do
-            if identifier == id then
+        for i = 1, #idens do
+            if identifier == idens[i] then
                 return src
             end
         end
     end
+
     return 0
 end
 
 exports('GetSource', GetSource)
 
----@param identifier Identifier
+---@param identifier string
 ---@return integer source of the player with the matching identifier or 0 if no player found
 function GetUserId(identifier)
     for src in pairs(QBX.Players) do
         local idens = GetPlayerIdentifiers(src)
-        for _, id in pairs(idens) do
-            if identifier == id then
+        for i = 1, #idens do
+            if identifier == idens[i] then
                 return QBX.Players[src].PlayerData.userId
             end
         end
     end
+
     return 0
 end
 
 exports('GetUserId', GetUserId)
 
----@param source Source|string source or identifier of the player
+---@param source Source | string source or identifier of the player
 ---@return Player
 function GetPlayer(source)
-    if tonumber(source) ~= nil then
-        return QBX.Players[tonumber(source)]
+    local numberSource = tonumber(source)
+    if numberSource then
+        return QBX.Players[numberSource]
     else
         return QBX.Players[GetSource(source --[[@as string]])]
     end
@@ -108,13 +109,12 @@ function GetDutyCountJob(job)
     local players = {}
     local count = 0
     for src, player in pairs(QBX.Players) do
-        if player.PlayerData.job.name == job then
-            if player.PlayerData.job.onduty then
-                players[#players + 1] = src
-                count += 1
-            end
+        if player.PlayerData.job.name == job and player.PlayerData.job.onduty then
+            players[#players + 1] = src
+            count += 1
         end
     end
+
     return count, players
 end
 
@@ -128,13 +128,12 @@ function GetDutyCountType(type)
     local players = {}
     local count = 0
     for src, player in pairs(QBX.Players) do
-        if player.PlayerData.job.type == type then
-            if player.PlayerData.job.onduty then
-                players[#players + 1] = src
-                count += 1
-            end
+        if player.PlayerData.job.type == type and player.PlayerData.job.onduty then
+            players[#players + 1] = src
+            count += 1
         end
     end
+
     return count, players
 end
 
@@ -156,11 +155,12 @@ exports('GetBucketObjects', GetBucketObjects)
 ---@param bucket integer
 ---@return boolean
 function SetPlayerBucket(source, bucket)
-    if not (source or bucket) then return false end
+    if not source or not bucket then return false end
 
     Player(source).state:set('instance', bucket, true)
     SetPlayerRoutingBucket(source --[[@as string]], bucket)
     QBX.Player_Buckets[source] = bucket
+
     return true
 end
 
@@ -171,10 +171,11 @@ exports('SetPlayerBucket', SetPlayerBucket)
 ---@param bucket integer
 ---@return boolean
 function SetEntityBucket(entity, bucket)
-    if not (entity or bucket) then return false end
+    if not entity or not bucket then return false end
 
     SetEntityRoutingBucket(entity, bucket)
     QBX.Entity_Buckets[entity] = bucket
+
     return true
 end
 
@@ -185,7 +186,7 @@ exports('SetEntityBucket', SetEntityBucket)
 ---@return Source[]|boolean
 function GetPlayersInBucket(bucket)
     local curr_bucket_pool = {}
-    if not (QBX.Player_Buckets or next(QBX.Player_Buckets)) then
+    if not QBX.Player_Buckets or table.type(QBX.Player_Buckets) == 'empty' then
         return false
     end
 
@@ -205,7 +206,7 @@ exports('GetPlayersInBucket', GetPlayersInBucket)
 ---@return boolean | integer[]
 function GetEntitiesInBucket(bucket)
     local curr_bucket_pool = {}
-    if not (QBX.Entity_Buckets or next(QBX.Entity_Buckets)) then
+    if not QBX.Entity_Buckets or table.type(QBX.Entity_Buckets) == 'empty' then
         return false
     end
 
@@ -241,9 +242,7 @@ exports('CanUseItem', CanUseItem)
 ---@param source Source
 ---@return boolean
 function IsWhitelisted(source)
-    if not serverConfig.whitelist then return true end
-    if IsPlayerAceAllowed(source --[[@as string]], serverConfig.whitelistPermission) then return true end
-    return false
+    return not serverConfig.whitelist or IsPlayerAceAllowed(source --[[@as string]], serverConfig.whitelistPermission)
 end
 
 exports('IsWhitelisted', IsWhitelisted)
@@ -254,12 +253,12 @@ exports('IsWhitelisted', IsWhitelisted)
 ---@param source Source
 ---@param permission string
 function AddPermission(source, permission)
-    if not IsPlayerAceAllowed(source --[[@as string]], permission) then
-        lib.addPrincipal('player.' .. source, 'group.' .. permission)
-        lib.addAce('player.' .. source, 'group.' .. permission)
-        TriggerClientEvent('QBCore:Client:OnPermissionUpdate', source)
-        TriggerEvent('QBCore:Server:OnPermissionUpdate', source)
-    end
+    if IsPlayerAceAllowed(source --[[@as string]], permission) then return end
+
+    lib.addPrincipal('player.' .. source, 'group.' .. permission)
+    lib.addAce('player.' .. source, 'group.' .. permission)
+    TriggerClientEvent('QBCore:Client:OnPermissionUpdate', source)
+    TriggerEvent('QBCore:Server:OnPermissionUpdate', source)
 end
 
 ---@deprecated use cfg ACEs instead
@@ -332,6 +331,7 @@ function GetPermission(source)
             perms[v] = true
         end
     end
+
     return perms
 end
 
@@ -345,7 +345,9 @@ exports('GetPermission', GetPermission)
 function IsOptin(source)
     local license = GetPlayerIdentifierByType(source --[[@as string]], 'license2') or GetPlayerIdentifierByType(source --[[@as string]], 'license')
     if not license or not IsPlayerAceAllowed(source --[[@as string]], 'admin') then return false end
+
     local player = GetPlayer(source)
+
     return player.PlayerData.optin
 end
 
@@ -356,9 +358,10 @@ exports('IsOptin', IsOptin)
 function ToggleOptin(source)
     local license = GetPlayerIdentifierByType(source --[[@as string]], 'license2') or GetPlayerIdentifierByType(source --[[@as string]], 'license')
     if not license or not IsPlayerAceAllowed(source --[[@as string]], 'admin') then return end
+
     local player = GetPlayer(source)
     player.PlayerData.optin = not player.PlayerData.optin
-    player.Functions.SetPlayerData('optin', player.PlayerData.optin)
+    SetPlayerData(player.PlayerData.source, 'optin', player.PlayerData.optin, nil, true)
 end
 
 exports('ToggleOptin', ToggleOptin)
@@ -456,7 +459,7 @@ local function ExploitBan(playerId, origin)
     DropPlayer(playerId --[[@as string]], locale('info.exploit_banned', serverConfig.discord))
     logger.log({
         source = 'qbx_core',
-        webhook = loggingConfig.webhook['anticheat'],
+        webhook = loggingConfig.webhook.anticheat,
         event = 'Anti-Cheat',
         color = 'red',
         tags = loggingConfig.role,

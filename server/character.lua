@@ -15,6 +15,7 @@ local function giveStarterItems(source)
     while not exports.ox_inventory:GetInventory(source) do
         Wait(100)
     end
+
     for i = 1, #starterItems do
         local item = starterItems[i]
         if item.metadata and type(item.metadata) == 'function' then
@@ -43,11 +44,12 @@ lib.callback.register('qbx_core:server:loadCharacter', function(source, citizenI
 
     logger.log({
         source = 'qbx_core',
-        webhook = config.logging.webhook['joinleave'],
+        webhook = config.logging.webhook.joinleave,
         event = 'Loaded',
         color = 'green',
         message = ('**%s** (%s |  ||%s|| | %s | %s | %s) loaded'):format(GetPlayerName(source), GetPlayerIdentifierByType(source, 'discord') or 'undefined', GetPlayerIdentifierByType(source, 'ip') or 'undefined', GetPlayerIdentifierByType(source, 'license2') or GetPlayerIdentifierByType(source, 'license') or 'undefined', citizenId, source)
     })
+
     lib.print.info(('%s (Citizen ID: %s ID: %s) has successfully loaded!'):format(GetPlayerName(source), citizenId, source))
 end)
 
@@ -63,6 +65,7 @@ lib.callback.register('qbx_core:server:createCharacter', function(source, data)
     giveStarterItems(source)
 
     lib.print.info(('%s has created a character'):format(GetPlayerName(source)))
+
     return newData
 end)
 

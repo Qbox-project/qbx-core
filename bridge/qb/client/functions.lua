@@ -8,6 +8,7 @@ local functions = {}
 ---@return PlayerData? playerData
 function functions.GetPlayerData(cb)
     if not cb then return QBX.PlayerData end
+
     cb(QBX.PlayerData)
 end
 
@@ -27,8 +28,10 @@ functions.HasItem = function(items, amount)
                 return false
             end
         end
+
         return true
     end
+
     return count >= amount
 end
 
@@ -137,6 +140,7 @@ local function getEntities(pool, ignoreList) -- luacheck: ignore
             entities[#entities + 1] = entity
         end
     end
+
     return entities
 end
 
@@ -175,6 +179,7 @@ local function getClosestEntity(entities, coords) -- luacheck: ignore
             closestDistance = distance
         end
     end
+
     return closestEntity, closestDistance
 end
 
@@ -233,11 +238,13 @@ functions.GetClosestBone = function(entity, list)
             distance = boneDistance
         end
     end
+
     if not bone then
         bone = {id = GetEntityBoneIndexByName(entity, 'bodyshell'), type = 'remains', name = 'bodyshell'}
         coords = GetWorldPositionOfEntityBone(entity, bone.id)
         distance = #(coords - playerCoords)
     end
+
     return bone, coords, distance
 end
 
@@ -285,7 +292,9 @@ function functions.SpawnVehicle(model, cb, coords, isnetworked, teleportInto)
     SetVehRadioStation(veh, 'OFF')
     SetVehicleFuelLevel(veh, 100.0)
     SetModelAsNoLongerNeeded(model)
+
     if teleportInto then TaskWarpPedIntoVehicle(cache.ped, veh, -1) end
+
     if cb then cb(veh) end
 end
 
@@ -295,12 +304,14 @@ functions.DeleteVehicle = qbx.deleteVehicle
 ---@deprecated use qbx.getVehiclePlate from modules/lib.lua
 functions.GetPlate = function(vehicle)
     if vehicle == 0 then return end
+
     return qbx.getVehiclePlate(vehicle)
 end
 
 ---@deprecated use qbx.getVehicleDisplayName from modules/lib.lua
 functions.GetVehicleLabel = function(vehicle)
     if vehicle == nil or vehicle == 0 then return end
+
     return qbx.getVehicleDisplayName(vehicle)
 end
 
@@ -317,6 +328,7 @@ functions.SpawnClear = function(coords, radius)
             closeVeh[#closeVeh + 1] = vehicles[i]
         end
     end
+
     return #closeVeh == 0
 end
 
@@ -375,6 +387,7 @@ function functions.SetVehicleProperties(vehicle, props)
             SetVehicleWheelHealth(vehicle, wheelIndex, health)
         end
     end
+
     if props.headlightColor then
         SetVehicleHeadlightsColour(vehicle, props.headlightColor)
     end
@@ -779,24 +792,30 @@ functions.StartParticleAtCoord = function(dict, ptName, looped, coords, rot, sca
     lib.requestNamedPtfxAsset(dict)
     UseParticleFxAssetNextCall(dict)
     SetPtfxAssetNextCall(dict)
+
     local particleHandle
     if looped then
         particleHandle = StartParticleFxLoopedAtCoord(ptName, coords.x, coords.y, coords.z, rot.x, rot.y, rot.z, scale or 1.0, false, false, false, false)
         if color then
             SetParticleFxLoopedColour(particleHandle, color.r, color.g, color.b, false)
         end
+
         SetParticleFxLoopedAlpha(particleHandle, alpha or 10.0)
+
         if duration then
             Wait(duration)
             StopParticleFxLooped(particleHandle, false)
         end
     else
         SetParticleFxNonLoopedAlpha(alpha or 1.0)
+
         if color then
             SetParticleFxNonLoopedColour(color.r, color.g, color.b)
         end
+
         StartParticleFxNonLoopedAtCoord(ptName, coords.x, coords.y, coords.z, rot.x, rot.y, rot.z, scale or 1.0, false, false, false)
     end
+
     return particleHandle
 end
 
@@ -804,6 +823,7 @@ end
 functions.StartParticleOnEntity = function(dict, ptName, looped, entity, bone, offset, rot, scale, alpha, color, evolution, duration) -- luacheck: ignore
     lib.requestNamedPtfxAsset(dict)
     UseParticleFxAssetNextCall(dict)
+
     local particleHandle = nil
     ---@cast bone number
     local pedBoneIndex = bone and GetPedBoneIndex(entity, bone) or 0
@@ -817,28 +837,35 @@ functions.StartParticleOnEntity = function(dict, ptName, looped, entity, bone, o
         else
             particleHandle = StartParticleFxLoopedOnEntity(ptName, entity, offset.x, offset.y, offset.z, rot.x, rot.y, rot.z, scale or 1.0, false, false, false)
         end
+
         if evolution then
             SetParticleFxLoopedEvolution(particleHandle, evolution.name, evolution.amount, false)
         end
+
         if color then
             SetParticleFxLoopedColour(particleHandle, color.r, color.g, color.b, false)
         end
+
         SetParticleFxLoopedAlpha(particleHandle, alpha or 1.0)
+
         if duration then
             Wait(duration)
             StopParticleFxLooped(particleHandle, false)
         end
     else
         SetParticleFxNonLoopedAlpha(alpha or 1.0)
+
         if color then
             SetParticleFxNonLoopedColour(color.r, color.g, color.b)
         end
+
         if boneID then
             StartParticleFxNonLoopedOnPedBone(ptName, entity, offset.x, offset.y, offset.z, rot.x, rot.y, rot.z, boneID, scale or 1.0, false, false, false)
         else
             StartParticleFxNonLoopedOnEntity(ptName, entity, offset.x, offset.y, offset.z, rot.x, rot.y, rot.z, scale or 1.0, false, false, false)
         end
     end
+
     return particleHandle
 end
 

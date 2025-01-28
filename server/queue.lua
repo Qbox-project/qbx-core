@@ -4,10 +4,10 @@ if GetConvar('qbx:enablequeue', 'true') == 'false' then return false end
 
 ---@param resource string
 AddEventHandler('onResourceStarting', function(resource)
-    if resource == 'hardcap' then
-        lib.print.info('Preventing hardcap from starting...')
-        CancelEvent()
-    end
+    if resource ~= 'hardcap' then return end
+
+    lib.print.info('Preventing hardcap from starting...')
+    CancelEvent()
 end)
 
 if GetResourceState('hardcap'):find('start') then
@@ -146,6 +146,7 @@ local function updatePlayerJoining(source, license)
     if not joiningPlayers[license] then
         joiningPlayerCount += 1
     end
+
     joiningPlayers[license] = { source = source, timestamp = os.time() }
 end
 
@@ -197,7 +198,6 @@ local function awaitPlayerQueue(source, license, deferrals)
 
     local playerTimingOut = isPlayerTimingOut(license)
     local data = playerDatas[license]
-
     if data and not playerTimingOut then
         deferrals.done(locale('error.already_in_queue'))
         return
@@ -228,7 +228,6 @@ local function awaitPlayerQueue(source, license, deferrals)
     -- wait until the player disconnected or until there are available slots and the player is first in queue
     while DoesPlayerExist(source --[[@as string]]) and ((GetNumPlayerIndices() + joiningPlayerCount) >= maxPlayers or data.globalPos > 1) do
         local displayTime = createDisplayTime(data.waitingSeconds, waitingEmojiIndex)
-
         if useAdaptiveCard then
             deferrals.presentCard(generateCard({
                 subQueue = subQueue,
@@ -255,6 +254,7 @@ local function awaitPlayerQueue(source, license, deferrals)
         if awaitPlayerTimeout(license) then
             dequeue(license)
         end
+
         return
     end
 

@@ -43,14 +43,17 @@ end
 
 local function sendPropsDiff()
     if not Entity(vehicle).state.persisted then return end
+
     local newProps = lib.getVehicleProperties(vehicle)
     if not cachedProps then
         cachedProps = newProps
         return
     end
+
     local diff, hasChanged = calculateDiff(cachedProps, newProps)
     cachedProps = newProps
     if not hasChanged then return end
+
     TriggerServerEvent('qbx_core:server:vehiclePropsChanged', netId, diff)
 end
 

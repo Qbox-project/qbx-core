@@ -49,6 +49,7 @@ exports('registerHook', function(event, cb)
     cb.hookId = hookId
 
     eventHooks[event][#eventHooks[event] + 1] = cb
+
     return hookId
 end)
 

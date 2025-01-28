@@ -1,4 +1,4 @@
----@return table<string>
+---@return string[]
 return {
     'Afghan',
     'Albanian',

@@ -24,6 +24,7 @@ end)
 RegisterNetEvent('QBCore:Player:SetPlayerData', function(val)
     local invokingResource = GetInvokingResource()
     if invokingResource and invokingResource ~= cache.resource then return end
+
     QBX.PlayerData = val
 end)
 
@@ -34,10 +35,10 @@ end)
 ---@param value boolean
 ---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler('PVPEnabled', nil, function(bagName, _, value)
-    if bagName == 'global' then
-        SetCanAttackFriendly(cache.ped, value, false)
-        NetworkSetFriendlyFireOption(value)
-    end
+    if bagName ~= 'global' then return end
+
+    SetCanAttackFriendly(cache.ped, value, false)
+    NetworkSetFriendlyFireOption(value)
 end)
 
 -- Teleport Commands
@@ -56,12 +57,11 @@ RegisterNetEvent('QBCore:Command:TeleportToCoords', function(x, y, z, h)
     SetEntityHeading(cache.ped, h or GetEntityHeading(cache.ped))
 end)
 
----@return 'marker'? error present if player did not place a blip
 RegisterNetEvent('QBCore:Command:GoToMarker', function()
     local blipMarker <const> = GetFirstBlipInfoId(8)
     if not DoesBlipExist(blipMarker) then
         Notify(locale('error.no_waypoint'), 'error')
-        return 'marker'
+        return
     end
 
     -- Fade screen to hide how clients get teleported.
@@ -96,8 +96,10 @@ RegisterNetEvent('QBCore:Command:GoToMarker', function()
             if GetGameTimer() - curTime > 1000 then
                 break
             end
+
             Wait(0)
         end
+
         NewLoadSceneStop()
         SetPedCoordsKeepVehicle(ped, x, y, z)
 
@@ -116,6 +118,7 @@ RegisterNetEvent('QBCore:Command:GoToMarker', function()
             SetPedCoordsKeepVehicle(ped, x, y, groundZ)
             break
         end
+
         Wait(0)
     end
 
@@ -204,6 +207,7 @@ RegisterNetEvent('QBCore:Client:OnSharedUpdateMultiple', function(tableName, val
     for key, value in pairs(values) do
         QBX.Shared[tableName][key] = value
     end
+
     TriggerEvent('QBCore:Client:UpdateObject')
 end)
 
@@ -212,6 +216,7 @@ end)
 ---@param props table<any, any>
 RegisterNetEvent('qbx_core:client:setVehicleProperties', function(netId, props)
     if not props then return end
+
     local timeOut = GetGameTimer() + 1000
     local vehicle = NetworkGetEntityFromNetworkId(netId)
     while true do
@@ -220,6 +225,7 @@ RegisterNetEvent('qbx_core:client:setVehicleProperties', function(netId, props)
                 return
             end
         end
+
         if GetGameTimer() > timeOut then
             return
         end

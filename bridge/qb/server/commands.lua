@@ -7,6 +7,7 @@ function commands.Add(name, help, arguments, argsrequired, callback, permission)
         restricted = permission and permission ~= 'user' and 'group.'..permission or false,
         params = {}
     }
+
     for i = 1, #arguments do
         local argument = arguments[i]
         properties.params[i] = {
@@ -16,6 +17,7 @@ function commands.Add(name, help, arguments, argsrequired, callback, permission)
             optional = not argsrequired or argument?.optional
         }
     end
+
     lib.addCommand(name, properties, function(source, args, raw)
         local _args = {}
         if #args > 0 then
@@ -25,6 +27,7 @@ function commands.Add(name, help, arguments, argsrequired, callback, permission)
                 _args[i] = args[arguments[i].name]
             end
         end
+
         callback(source, _args, raw)
     end)
 end

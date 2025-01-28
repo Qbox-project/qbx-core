@@ -21,10 +21,13 @@ AddEventHandler('playerJoining', function()
     local src = source --[[@as string]]
     local license = GetPlayerIdentifierByType(src, 'license2') or GetPlayerIdentifierByType(src, 'license')
     if not license then return end
+
     if queue then
         queue.removePlayerJoining(license)
     end
+
     if not serverConfig.checkDuplicateLicense then return end
+
     if usedLicenses[license] then
         Wait(0) -- mandatory wait for the drop reason to show up
         DropPlayer(src, locale('error.duplicate_license'))
@@ -38,31 +41,34 @@ AddEventHandler('playerDropped', function(reason)
     local src = source --[[@as string]]
     local license = GetPlayerIdentifierByType(src, 'license2') or GetPlayerIdentifierByType(src, 'license')
     if license then usedLicenses[license] = nil end
+
     if not QBX.Players[src] then return end
+
     GlobalState.PlayerCount = GetNumPlayerIndices()
+
     local player = QBX.Players[src]
     player.PlayerData.lastLoggedOut = os.time()
+    Save(player.PlayerData.source)
+
     logger.log({
         source = 'qbx_core',
-        webhook = loggingConfig.webhook['joinleave'],
+        webhook = loggingConfig.webhook.joinleave,
         event = 'Dropped',
         color = 'red',
         message = ('**%s** (%s) left...\n **Reason:** %s'):format(GetPlayerName(src), player.PlayerData.license, reason),
     })
-    player.Functions.Save()
+
     QBX.Player_Buckets[player.PlayerData.license] = nil
     QBX.Players[src] = nil
 end)
 
----@param source Source|string
+---@param source Source | string
 ---@return table<string, string>
 local function getIdentifiers(source)
     local identifiers = {}
-
     for i = 0, GetNumPlayerIdentifiers(source --[[@as string]]) - 1 do
         local identifier = GetPlayerIdentifier(source --[[@as string]], i)
         local prefix = identifier:match('([^:]+)')
-
         if prefix ~= 'ip' then
             identifiers[prefix] = identifier
         end
@@ -98,9 +104,7 @@ local function onPlayerConnecting(name, _, deferrals)
 
     if not userId then
         local identifiers = getIdentifiers(src)
-
         identifiers.username = name
-
         storage.createUser(identifiers)
     end
 
@@ -131,6 +135,7 @@ local function onPlayerConnecting(name, _, deferrals)
         if not success then
             databasePromise:reject(err)
         end
+
         databasePromise:resolve()
     end)
 
@@ -225,6 +230,7 @@ RegisterNetEvent('QBCore:ToggleDuty', function()
     local src = source --[[@as Source]]
     local player = GetPlayer(src)
     if not player then return end
+
     if player.PlayerData.job.onduty then
         player.Functions.SetJobDuty(false)
         Notify(src, locale('info.off_duty'))
@@ -240,11 +246,13 @@ end)
 ---@param value number
 local function playerStateBagCheck(bagName, meta, value)
     if not value then return end
+
     local plySrc = GetPlayerFromStateBagName(bagName)
     if not plySrc then return end
+
     local player = QBX.Players[plySrc]
-    if not player then return end
-    if player.PlayerData.metadata[meta] == value then return end
+    if not player or player.PlayerData.metadata[meta] == value then return end
+
     player.Functions.SetMetaData(meta, value)
 end
 

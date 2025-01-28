@@ -9,16 +9,19 @@ elseif GetConvar('inventory:framework', '') ~= 'qbx' then
 elseif GetConvarInt('onesync_enableInfinity', 0) ~= 1 then
     startupErrors, errorMessage = true, 'OneSync Infinity is not enabled. You can do so in txAdmin settings or add +set onesync on to your server startup command line'
 end
+
 if startupErrors then
     lib.print.error('Startup errors detected, shutting down server...')
     ExecuteCommand('quit immediately')
+
     for _ = 1, 100 do
         lib.print.error(errorMessage)
     end
+
     error(errorMessage)
 end
 
----@type 'strict'|'relaxed'|'inactive'
+---@type 'strict' | 'relaxed' | 'inactive'
 local bucketLockDownMode = GetConvar('qbx:bucketlockdownmode', 'inactive')
 SetRoutingBucketEntityLockdownMode(0, bucketLockDownMode)
 
@@ -51,6 +54,7 @@ local function createSessionId(entity)
     if existingSessionId then
         return existingSessionId
     end
+
     currentSessionId += 1
     local sessionId = currentSessionId
     Entity(entity).state:set('sessionId', sessionId, true)
@@ -75,6 +79,7 @@ function GetVehicleClass(model)
             repeat
                 local players = GetPlayers()
                 if #players == 0 then break end
+
                 local playerId = players[math.random(#players)]
                 -- this *may* fail, but we still need to resolve our promise
                 pcall(function()
@@ -92,6 +97,7 @@ function GetVehicleClass(model)
             vehicleClassesPromise:resolve()
         end
     end
+
     return vehicleClasses[model]
 end
 

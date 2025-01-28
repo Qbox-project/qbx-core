@@ -31,26 +31,33 @@ end
 ---@return number?
 function functions.SpawnVehicle(source, model, coords, warp)
     local ped = GetPlayerPed(source)
+
     model = type(model) == 'string' and joaat(model) or model
+
     if not coords then coords = GetEntityCoords(ped) end
+
     local heading = coords.w and coords.w or 0.0
     local veh = CreateVehicle(model, coords.x, coords.y, coords.z, heading, true, true)
+
     while not DoesEntityExist(veh) do Wait(0) end
+
     if warp then
         while GetVehiclePedIsIn(ped, false) ~= veh do
             Wait(0)
             TaskWarpPedIntoVehicle(ped, veh, -1)
         end
     end
+
     while NetworkGetEntityOwner(veh) ~= source do Wait(0) end
+
     return veh
 end
 
 ---@deprecated use qbx.spawnVehicle from modules/lib.lua
 function functions.CreateVehicle(source, model, _, coords, warp)
     model = type(model) == 'string' and joaat(model) or (model --[[@as integer]])
-    local ped = GetPlayerPed(source)
 
+    local ped = GetPlayerPed(source)
     local netId = qbx.spawnVehicle({
         model = model,
         spawnSource = coords or ped,
@@ -74,26 +81,32 @@ functions.Kick = function(source, reason, setKickReason, deferrals)
     if setKickReason then
         setKickReason(reason)
     end
+
     CreateThread(function()
         if deferrals then
             deferrals.update(reason)
             Wait(2500)
         end
+
         if source then
             DropPlayer(source --[[@as string]], reason)
         end
+
         for _ = 0, 4 do
             while true do
                 if source then
                     if GetPlayerPing(source --[[@as string]]) >= 0 then
                         break
                     end
+
                     Wait(100)
+
                     CreateThread(function()
                         DropPlayer(source --[[@as string]], reason)
                     end)
                 end
             end
+
             Wait(5000)
         end
     end)
@@ -126,8 +139,10 @@ functions.HasItem = function(source, items, amount) -- luacheck: ignore
                 return false
             end
         end
+
         return true
     end
+
     return count >= amount
 end
 
@@ -152,6 +167,7 @@ local function AddItem(itemName, item)
 
     TriggerClientEvent('QBCore:Client:OnSharedUpdate', -1, 'Items', itemName, item)
     TriggerEvent('QBCore:Server:UpdateObject')
+
     return true, 'success'
 end
 
@@ -165,12 +181,15 @@ local function UpdateItem(itemName, item)
     if type(itemName) ~= 'string' then
         return false, 'invalid_item_name'
     end
+
     if not qbCoreCompat.Shared.Items[itemName] then
         return false, 'item_not_exists'
     end
+
     qbCoreCompat.Shared.Items[itemName] = item
     TriggerClientEvent('QBCore:Client:OnSharedUpdate', -1, 'Items', itemName, item)
     TriggerEvent('QBCore:Server:UpdateObject')
+
     return true, 'success'
 end
 
@@ -184,7 +203,6 @@ local function AddItems(items)
     local shouldContinue = true
     local message = 'success'
     local errorItem = nil
-
     for key, value in pairs(items) do
         if type(key) ~= 'string' then
             message = 'invalid_item_name'
@@ -199,6 +217,7 @@ local function AddItems(items)
             errorItem = items[key]
             break
         end
+
         lib.print.warn(('New item %s added but not found in ox_inventory. Printing item data'):format(key))
         lib.print.warn(value)
 
@@ -206,8 +225,10 @@ local function AddItems(items)
     end
 
     if not shouldContinue then return false, message, errorItem end
+
     TriggerClientEvent('QBCore:Client:OnSharedUpdateMultiple', -1, 'Items', items)
     TriggerEvent('QBCore:Server:UpdateObject')
+
     return true, message, nil
 end
 
@@ -230,6 +251,7 @@ local function RemoveItem(itemName)
 
     TriggerClientEvent('QBCore:Client:OnSharedUpdate', -1, 'Items', itemName, nil)
     TriggerEvent('QBCore:Server:UpdateObject')
+
     return true, 'success'
 end
 
@@ -252,12 +274,14 @@ local function addJob(jobName, job)
     end
 
     CreateJobs({[jobName] = job})
+
     return true, 'success'
 end
 
 functions.AddJob = function(jobName, job)
     return exports['qb-core']:AddJob(jobName, job)
 end
+
 createQbExport('AddJob', addJob)
 
 -- Multiple Add Jobs
@@ -278,12 +302,14 @@ local function addJobs(jobs)
     end
 
     CreateJobs(jobs)
+
     return true, 'success'
 end
 
 functions.AddJobs = function(jobs)
     return exports['qb-core']:AddJobs(jobs)
 end
+
 createQbExport('AddJobs', addJobs)
 
 -- Single Update Job
@@ -302,12 +328,14 @@ local function updateJob(jobName, job)
     end
 
     CreateJobs({[jobName] = job})
+
     return true, 'success'
 end
 
 functions.UpdateJob = function(jobName, job)
     return exports['qb-core']:UpdateJob(jobName, job)
 end
+
 createQbExport('UpdateJob', updateJob)
 
 -- Single Add Gang
@@ -326,12 +354,14 @@ local function addGang(gangName, gang)
     end
 
     CreateGangs({[gangName] = gang})
+
     return true, 'success'
 end
 
 functions.AddGang = function(gangName, gang)
     return exports['qb-core']:AddGang(gangName, gang)
 end
+
 createQbExport('AddGang', addGang)
 
 -- Single Update Gang
@@ -350,12 +380,14 @@ local function updateGang(gangName, gang)
     end
 
     CreateGangs({[gangName] = gang})
+
     return true, 'success'
 end
 
 functions.UpdateGang = function(gangName, gang)
     return exports['qb-core']:UpdateGang(gangName, gang)
 end
+
 createQbExport('UpdateGang', updateGang)
 
 -- Multiple Add Gangs
@@ -376,22 +408,26 @@ local function addGangs(gangs)
     end
 
     CreateGangs(gangs)
+
     return true, 'success'
 end
 
 functions.AddGangs = function(gangs)
     return exports['qb-core']:AddGangs(gangs)
 end
+
 createQbExport('AddGangs', addGangs)
 
 functions.RemoveJob = function(jobName)
     return exports.qbx_core:RemoveJob(jobName)
 end
+
 createQbExport('RemoveJob', RemoveJob)
 
 functions.RemoveGang = function(gangName)
     return exports.qbx_core:RemoveGang(gangName)
 end
+
 createQbExport('RemoveGang', RemoveGang)
 
 local function checkExistingMethod(method, methodName)
@@ -401,8 +437,10 @@ local function checkExistingMethod(method, methodName)
         if not disableMethodOverrideWarning then
             lib.print.warn(warnMessage:format(methodName))
         end
+
         return allowMethodOverrides
     end
+
     return true
 end
 
@@ -430,6 +468,7 @@ function functions.AddPlayerMethod(ids, methodName, handler)
             end
         else
             if not QBX.Players[ids] then return end
+
             if checkExistingMethod(QBX.Players[ids].Functions[methodName], methodName) then
                 QBX.Players[ids].Functions[methodName] = handler
             end
@@ -517,7 +556,7 @@ end
 functions.SetField = SetField
 exports('SetField', SetField)
 
----@param identifier Identifier
+---@param identifier string
 ---@return integer source of the player with the matching identifier or 0 if no player found
 function functions.GetSource(identifier)
     return exports.qbx_core:GetSource(identifier)
@@ -556,6 +595,7 @@ function functions.GetQBPlayers()
     for k, player in pairs(players) do
         deprecatedPlayers[k] = AddDeprecatedFunctions(player)
     end
+
     return deprecatedPlayers
 end
 

@@ -8,6 +8,7 @@ RegisterServerEvent('baseevents:enteringVehicle', function(veh, seat, modelName,
         netId = netId,
         event = 'Entering'
     }
+
     TriggerClientEvent('QBCore:Client:VehicleInfo', src, data)
 end)
 
@@ -20,6 +21,7 @@ RegisterServerEvent('baseevents:enteredVehicle', function(veh, seat, modelName, 
         netId = netId,
         event = 'Entered'
     }
+
     TriggerClientEvent('QBCore:Client:VehicleInfo', src, data)
 end)
 
@@ -37,5 +39,6 @@ RegisterServerEvent('baseevents:leftVehicle', function(veh, seat, modelName, net
         netId = netId,
         event = 'Left'
     }
+
     TriggerClientEvent('QBCore:Client:VehicleInfo', src, data)
 end)
