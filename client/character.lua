@@ -116,6 +116,12 @@ if config.characters.limitNationalities then
     end)
 end
 
+--- @param resourceName string The name of the resource to check.
+--- @return boolean True if the resource is missing, false otherwise.
+local function isResourceMissing(resourceName)
+    return GetResourceState(resourceName) == 'missing'
+end
+
 local function setupPreviewCam()
     DoScreenFadeIn(1000)
     SetTimecycleModifier('hud_def_blur')
@@ -342,14 +348,19 @@ local function createCharacter(cid)
         cid = cid
     })
 
-    if GetResourceState('qbx_spawn') == 'missing' then
+    if isResourceMissing('qbx_spawn') then
         spawnDefault()
-    else
-        if config.characters.startingApartment then
-            TriggerEvent('apartments:client:setupSpawnUI', newData)
+        return
+    end
+    
+    if config.characters.startingApartment then
+        if isResourceMissing('qbx_apartments') then
+            spawnDefault()
         else
-            TriggerEvent('qbx_core:client:spawnNoApartments')
+            TriggerEvent('apartments:client:setupSpawnUI', newData)
         end
+    else
+        TriggerEvent('qbx_core:client:spawnNoApartments')
     end
 
     destroyPreviewCam()
