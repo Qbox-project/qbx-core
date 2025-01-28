@@ -144,7 +144,7 @@ function SetJobDuty(identifier, onDuty)
     TriggerEvent('QBCore:Server:SetDuty', player.PlayerData.source, player.PlayerData.job.onduty)
     TriggerClientEvent('QBCore:Client:SetDuty', player.PlayerData.source, player.PlayerData.job.onduty)
 
-    UpdatePlayerData(identifier)
+    UpdatePlayerData(identifier, 'job', player.PlayerData.job)
 end
 
 exports('SetJobDuty', SetJobDuty)
@@ -206,7 +206,7 @@ function SetPlayerPrimaryJob(citizenid, jobName)
         SaveOffline(player.PlayerData)
     else
         Save(player.PlayerData.source)
-        UpdatePlayerData(player.PlayerData.source)
+        UpdatePlayerData(player.PlayerData.source, 'job', player.PlayerData.job)
         TriggerEvent('QBCore:Server:OnJobUpdate', player.PlayerData.source, player.PlayerData.job)
         TriggerClientEvent('QBCore:Client:OnJobUpdate', player.PlayerData.source, player.PlayerData.job)
     end
@@ -429,7 +429,7 @@ function SetPlayerPrimaryGang(citizenid, gangName)
         SaveOffline(player.PlayerData)
     else
         Save(player.PlayerData.source)
-        UpdatePlayerData(player.PlayerData.source)
+        UpdatePlayerData(player.PlayerData.source, 'gang', player.PlayerData.gang)
         TriggerEvent('QBCore:Server:OnGangUpdate', player.PlayerData.source, player.PlayerData.gang)
         TriggerClientEvent('QBCore:Client:OnGangUpdate', player.PlayerData.source, player.PlayerData.gang)
     end
@@ -800,7 +800,7 @@ function CreatePlayer(playerData, Offline)
         self.PlayerData.metadata[self.PlayerData.job.name].reputation += amount
 
         ---@diagnostic disable-next-line: param-type-mismatch
-        UpdatePlayerData(self.Offline and self.PlayerData.citizenid or self.PlayerData.source)
+        UpdatePlayerData(self.Offline and self.PlayerData.citizenid or self.PlayerData.source, 'metadata', self.PlayerData.metadata)
     end
 
     ---@param moneytype MoneyType
@@ -910,7 +910,7 @@ function CreatePlayer(playerData, Offline)
         self.PlayerData.charinfo.card = cardNumber
 
         ---@diagnostic disable-next-line: param-type-mismatch
-        UpdatePlayerData(self.Offline and self.PlayerData.citizenid or self.PlayerData.source)
+        UpdatePlayerData(self.Offline and self.PlayerData.citizenid or self.PlayerData.source, 'charinfo', self.PlayerData.charinfo)
     end
 
     ---@deprecated use Save or SaveOffline instead
@@ -964,7 +964,7 @@ function CreatePlayer(playerData, Offline)
         end
 
         if not self.Offline then
-            UpdatePlayerData(self.PlayerData.source)
+            UpdatePlayerData(self.PlayerData.source, 'job', self.PlayerData.job)
             TriggerEvent('QBCore:Server:OnJobUpdate', self.PlayerData.source, self.PlayerData.job)
             TriggerClientEvent('QBCore:Client:OnJobUpdate', self.PlayerData.source, self.PlayerData.job)
         end
@@ -1000,7 +1000,7 @@ function CreatePlayer(playerData, Offline)
         end
 
         if not self.Offline then
-            UpdatePlayerData(self.PlayerData.source)
+            UpdatePlayerData(self.PlayerData.source, 'gang', self.PlayerData.gang)
             TriggerEvent('QBCore:Server:OnGangUpdate', self.PlayerData.source, self.PlayerData.gang)
             TriggerClientEvent('QBCore:Client:OnGangUpdate', self.PlayerData.source, self.PlayerData.gang)
         end
@@ -1091,17 +1091,21 @@ function SetPlayerData(identifier, key, value)
 
     player.PlayerData[key] = value
 
-    UpdatePlayerData(identifier)
+    UpdatePlayerData(identifier, key, value)
 end
 
 ---@param identifier Source | string
-function UpdatePlayerData(identifier)
+function UpdatePlayerData(identifier, key, value)
     local player = type(identifier) == 'string' and (GetPlayerByCitizenId(identifier) or GetOfflinePlayer(identifier)) or GetPlayer(identifier)
 
     if not player or player.Offline then return end
 
     TriggerEvent('QBCore:Player:SetPlayerData', player.PlayerData)
-    TriggerClientEvent('QBCore:Player:SetPlayerData', player.PlayerData.source, player.PlayerData)
+    if not key then
+        TriggerClientEvent('qbx_core:client:loadPlayerData', player.PlayerData.source, player.PlayerData)
+        return
+    end
+    TriggerClientEvent('qbx_core:client:onUpdatePlayerData', player.PlayerData.source, key, value)
 end
 
 ---@param identifier Source | string
@@ -1118,11 +1122,10 @@ function SetMetadata(identifier, metadata, value)
 
     player.PlayerData.metadata[metadata] = value
 
-    UpdatePlayerData(identifier)
-
     if not player.Offline then
         local playerState = Player(player.PlayerData.source).state
 
+        TriggerEvent('QBCore:Player:SetPlayerData', player.PlayerData)
         TriggerClientEvent('qbx_core:client:onSetMetaData', player.PlayerData.source, metadata, oldValue, value)
         TriggerEvent('qbx_core:server:onSetMetaData', metadata,  oldValue, value, player.PlayerData.source)
 
@@ -1179,7 +1182,7 @@ function SetCharInfo(identifier, charInfo, value)
 
     player.PlayerData.charinfo[charInfo] = value
 
-    UpdatePlayerData(identifier)
+    UpdatePlayerData(identifier, 'charinfo', player.PlayerData.charinfo)
 end
 
 exports('SetCharInfo', SetCharInfo)
@@ -1234,7 +1237,7 @@ function AddMoney(identifier, moneyType, amount, reason)
     player.PlayerData.money[moneyType] += amount
 
     if not player.Offline then
-        UpdatePlayerData(identifier)
+        UpdatePlayerData(identifier, 'money', player.PlayerData.money)
 
         local tags = amount > 100000 and config.logging.role or nil
         local resource = GetInvokingResource() or cache.resource
@@ -1289,7 +1292,7 @@ function RemoveMoney(identifier, moneyType, amount, reason)
     player.PlayerData.money[moneyType] -= amount
 
     if not player.Offline then
-        UpdatePlayerData(identifier)
+        UpdatePlayerData(identifier, 'money', player.PlayerData.money)
 
         local tags = amount > 100000 and config.logging.role or nil
         local resource = GetInvokingResource() or cache.resource
@@ -1337,7 +1340,7 @@ function SetMoney(identifier, moneyType, amount, reason)
     player.PlayerData.money[moneyType] = amount
 
     if not player.Offline then
-        UpdatePlayerData(identifier)
+        UpdatePlayerData(identifier, 'money', player.PlayerData.money)
 
         local difference = amount - oldAmount
         local dirChange = difference < 0 and 'removed' or 'added'
