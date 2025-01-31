@@ -4,11 +4,27 @@ GroupType = {
     GANG = 'gang'
 }
 
+---@type boolean
+local managementEnabled = GetConvar('qbx:enableGroupManagement', 'false') == 'true'
+
 ---@type table<string, Job>
 local jobs = require 'shared.jobs'
 
 ---@type table<string, Gang>
 local gangs = require 'shared.gangs'
+
+local storage = require 'server.storage.groups'
+
+if managementEnabled then
+    CreateThread(function()
+        storage.createGroupsTable()
+
+        local jobData = storage.fetchJobs()
+        local gangData = storage.fetchGangs()
+        CreateJobs(jobData)
+        CreateGangs(gangData)
+    end)
+end
 
 for name in pairs(jobs) do
     if name ~= name:lower() then
@@ -216,3 +232,55 @@ local function removeGangGrade(name, grade)
 end
 
 exports('RemoveGangGrade', removeGangGrade)
+
+---Update job data with persistence
+---@param name string
+---@param data Job
+local function updateJob(name, data)
+    if not managementEnabled then
+        lib.print.error('Job management not enabled')
+        return
+    end
+    if not jobs[name] then
+        lib.print.error('Job must exist to update. Not found:', name)
+        return
+    end
+    if data.defaultDuty == nil then data.defaultDuty = jobs[name].defaultDuty end
+    if data.offDutyPay == nil then data.offDutyPay = jobs[name].offDutyPay end
+    if data.label == nil then data.label = jobs[name].label end
+    if data.type == nil then data.type = jobs[name].type end
+    storage.updateGroup(name, GroupType.JOB, data)
+    jobs[name] = data
+    TriggerEvent('qbx_core:server:onJobUpdate', name, jobs[name])
+    TriggerClientEvent('qbx_core:client:onJobUpdate', -1, name, jobs[name])
+end
+
+exports('UpdateJob', updateJob)
+
+---Update gang data with persistence
+---@param name string
+---@param data Gang
+local function updateGang(name, data)
+    if not managementEnabled then
+        lib.print.error('Gang management not enabled')
+        return
+    end
+    if not gangs[name] then
+        lib.print.error('Gang must exist to update. Not found:', name)
+        return
+    end
+    storage.updateGroup(name, GroupType.GANG, data)
+    gangs[name] = data
+    TriggerEvent('qbx_core:server:onGangUpdate', name, gangs[name])
+    TriggerClientEvent('qbx_core:client:onGangUpdate', -1, name, gangs[name])
+end
+
+exports('UpdateGang', updateGang)
+
+lib.callback.register('qbx_core:server:getJobs', function()
+    return jobs
+end)
+
+lib.callback.register('qbx_core:server:getGangs', function()
+    return gangs
+end)
